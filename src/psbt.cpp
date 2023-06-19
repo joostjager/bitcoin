@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <psbt.h>
+#include <logging.h>
 
 #include <policy/policy.h>
 #include <util/check.h>
@@ -144,6 +145,18 @@ void PSBTInput::FillSignatureData(SignatureData& sigdata) const
     for (const auto& [hash, preimage] : hash256_preimages) {
         sigdata.hash256_preimages.emplace(std::vector<unsigned char>(hash.begin(), hash.end()), preimage);
     }
+
+    std::string annex_key = "annex";
+    std::vector<unsigned char> annex_key_vect(annex_key.begin(), annex_key.end());
+
+    auto it = unknown.find(annex_key_vect);
+    if (it != unknown.end()) {
+        sigdata.annex_present = true;        
+        sigdata.annex = it->second;
+        sigdata.annex.insert(sigdata.annex.begin(), 0x50);
+
+        sigdata.annex_hash = (HashWriter{} << sigdata.annex).GetSHA256();
+    } 
 }
 
 void PSBTInput::FromSignatureData(const SignatureData& sigdata)
